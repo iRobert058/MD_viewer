@@ -15,6 +15,7 @@ export async function reportDiagnostics(
   article: HTMLElement,
   scroller: HTMLElement,
   loads: number,
+  timings: Record<string, number>,
 ): Promise<void> {
   const images = Array.from(article.querySelectorAll("img"));
   // Lazy images below the fold may never load; give them a bounded wait.
@@ -27,6 +28,9 @@ export async function reportDiagnostics(
   const style = getComputedStyle(article);
   const report = {
     loads,
+    timings: Object.fromEntries(
+      Object.entries(timings).map(([k, v]) => [k, Math.round(v)]),
+    ),
     title: document.title,
     theme: document.documentElement.dataset["theme"],
     background: getComputedStyle(document.body).backgroundColor,

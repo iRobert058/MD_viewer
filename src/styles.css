@@ -286,6 +286,13 @@ kbd {
   margin-top: 0;
 }
 
+/* Long documents: let WebKit skip layout and paint for blocks that are off
+   screen. "auto" remembers each block's real size once it has been shown. */
+.markdown-body > * {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 2em;
+}
+
 .markdown-body h1,
 .markdown-body h2,
 .markdown-body h3,

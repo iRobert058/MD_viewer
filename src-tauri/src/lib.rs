@@ -33,7 +33,7 @@ pub fn run() {
             app::frontend_ready,
             app::open_local_link,
             app::open_external,
-            app::diagnostics_enabled,
+            app::diagnostics_config,
             app::report_diagnostics,
         ])
         .manage(AppState::default())

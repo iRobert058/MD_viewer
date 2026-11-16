@@ -572,10 +572,24 @@ fn record_timing(label: &str, render_ms: Option<f64>) {
     append_line("MDV_TIMING_FILE", &line.to_string());
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DiagnosticsConfig {
+    enabled: bool,
+    /// Scroll here after the first render, to test that live reload keeps the
+    /// position (MDV_DIAG_SCROLL, in CSS pixels).
+    scroll_to: Option<f64>,
+}
+
 /// Whether the frontend should send a rendering report (MDV_DIAG_FILE).
 #[tauri::command]
-pub fn diagnostics_enabled() -> bool {
-    std::env::var_os("MDV_DIAG_FILE").is_some()
+pub fn diagnostics_config() -> DiagnosticsConfig {
+    DiagnosticsConfig {
+        enabled: std::env::var_os("MDV_DIAG_FILE").is_some(),
+        scroll_to: std::env::var("MDV_DIAG_SCROLL")
+            .ok()
+            .and_then(|v| v.parse().ok()),
+    }
 }
 
 /// A summary of what a window rendered, for scripts/check-fixtures.sh.

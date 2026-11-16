@@ -55,9 +55,13 @@ const find = new FindBar(
 );
 
 let current: DocumentPayload | null = null;
-let pendingHighlight: Promise<void> = Promise.resolve();
+let pendingWork: Promise<void> = Promise.resolve();
+let renderGeneration = 0;
 let diagnostics = false;
 let loads = 0;
+let timings: Record<string, number> = {};
+let ipcMs = 0;
+let bootMs = 0;
 let settings: Settings | null = null;
 
 function show(which: "doc" | "empty" | "error"): void {
@@ -82,15 +86,17 @@ async function loadAndReport(): Promise<void> {
   await load();
   loads++;
   if (!diagnostics) return;
-  await pendingHighlight;
-  await reportDiagnostics(article, scroller, loads);
+  await pendingWork;
+  await reportDiagnostics(article, scroller, loads, timings);
 }
 
 /** Load (or reload) this window's document and render it. */
 async function load(): Promise<void> {
   let doc: DocumentPayload | null;
   try {
+    const tIpc = performance.now();
     doc = await invoke<DocumentPayload | null>("load_document");
+    ipcMs = performance.now() - tIpc;
   } catch (e) {
     showError(`This file could not be read.\n${String(e)}`);
     return;
@@ -107,16 +113,62 @@ async function load(): Promise<void> {
   current = doc;
   document.title = doc.name;
 
-  const scrollTop = scroller.scrollTop;
-  const fragment = renderer.render(doc.content, doc.dir);
-  if (!sameFile) article.replaceChildren();
-  reconcile(article, fragment);
-  show("doc");
-  scroller.scrollTop = sameFile ? scrollTop : 0;
+  const generation = ++renderGeneration;
+  const tRender = performance.now();
+  if (sameFile) {
+    // Live reload: full render, keeping unchanged blocks in place.
+    const scrollTop = scroller.scrollTop;
+    const fragment = renderer.render(doc.content, doc.dir);
+    const tReconcile = performance.now();
+    reconcile(article, fragment);
+    timings = { ...renderer.lastTimings, ipc: ipcMs, boot: bootMs };
+    timings["reconcile"] = performance.now() - tReconcile;
+    show("doc");
+    // Only touch scrollTop when it changes: setting it forces a full layout.
+    if (scroller.scrollTop !== scrollTop) scroller.scrollTop = scrollTop;
+    afterRender();
+    pendingWork = highlightLogged();
+    return;
+  }
 
+  // New file: show the first screen now, append the rest in slices.
+  const { first, rest } = renderer.renderChunked(doc.content, doc.dir);
+  article.replaceChildren(first);
+  timings = { ...renderer.lastTimings, ipc: ipcMs, boot: bootMs };
+  timings["firstChunk"] = performance.now() - tRender;
+  show("doc");
+  if (scroller.scrollTop !== 0) scroller.scrollTop = 0;
+  afterRender();
+  pendingWork = appendRest(rest, generation).then(() => {
+    if (generation !== renderGeneration) return;
+    timings["allChunks"] = performance.now() - tRender;
+    if (rest.length > 0) afterRender();
+    return highlightLogged();
+  });
+}
+
+/** Append the remaining chunks, yielding between them so the UI stays responsive. */
+async function appendRest(
+  rest: (() => DocumentFragment)[],
+  generation: number,
+): Promise<void> {
+  for (const chunk of rest) {
+    await new Promise((r) => setTimeout(r, 0));
+    // A newer load (another file or a live reload) took over.
+    if (generation !== renderGeneration) return;
+    article.append(chunk());
+  }
+}
+
+function afterRender(): void {
+  const tOutline = performance.now();
   outline.rebuild();
+  timings["outline"] = performance.now() - tOutline;
   find.refresh();
-  pendingHighlight = highlight().catch((e: unknown) =>
+}
+
+function highlightLogged(): Promise<void> {
+  return highlight().catch((e: unknown) =>
     console.error("highlighting failed", e),
   );
 }
@@ -204,15 +256,20 @@ async function start(): Promise<void> {
     (msg) => console.error(msg),
   );
 
-  diagnostics = await invoke<boolean>("diagnostics_enabled");
+  const diag = await invoke<{ enabled: boolean; scrollTo: number | null }>(
+    "diagnostics_config",
+  );
+  diagnostics = diag.enabled;
+  bootMs = performance.now() - started;
   await load();
   loads++;
   // The DOM now holds the content, so the window can be shown. Do not wait
   // for requestAnimationFrame: WebKit does not run frames for a hidden window.
   await invoke("frontend_ready", { renderMs: performance.now() - started });
   if (diagnostics) {
-    await pendingHighlight;
-    await reportDiagnostics(article, scroller, loads);
+    await pendingWork;
+    if (diag.scrollTo !== null) scroller.scrollTop = diag.scrollTo;
+    await reportDiagnostics(article, scroller, loads, timings);
   }
 }
 
