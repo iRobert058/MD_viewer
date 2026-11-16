@@ -3,6 +3,7 @@ name = "markdown-viewer"
 version = "0.1.0"
 description = "A quiet Markdown viewer for macOS"
 authors = ["Robert Karzijn"]
+license = "MIT"
 edition = "2024"
 
 [lib]

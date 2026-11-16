@@ -64,3 +64,7 @@ node scripts/make-large-fixture.mjs   # writes tests/fixtures/large.md (~1 MB)
 ```
 
 See `docs/decisions.md` for design decisions.
+
+## License
+
+MIT, see [LICENSE](LICENSE).
