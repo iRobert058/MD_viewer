@@ -138,7 +138,26 @@ def main() -> int:
             check("relaunch report received", False)
         quit_app()
 
-        # 4. Closing the last window keeps the app running; reopening gives an empty window.
+        # 4. Links: in-page anchor, relative Markdown file, path with spaces and non-ASCII.
+        diag = work / "d4.jsonl"
+        script = ",".join(
+            [
+                'click:a[href="#second-section"]', "wait:600", "report",
+                # Each opened link focuses its new window; close it to return.
+                "click:a[href^=\"folder%20with%20spaces\"]", "wait:800", "close", "wait:500",
+                'click:a[href="basic.md"]', "wait:800",
+            ]
+        )
+        launch([work / "f/links.md"], {"MDV_DIAG_FILE": str(diag), "MDV_SELFTEST": script})
+        r = [x["report"] for x in wait_reports(diag, 4)]
+        titles = [x["title"] for x in r]
+        check("in-page anchor scrolls the document", len(r) >= 2 and r[1]["scrollTop"] > 0,
+              [x["scrollTop"] for x in r])
+        check("relative .md link opens in the app", "basic.md" in titles, titles)
+        check("link to path with spaces and non-ASCII opens", "naïve café.md" in titles, titles)
+        quit_app()
+
+        # 5. Closing the last window keeps the app running; reopening gives an empty window.
         diag = work / "d3.jsonl"
         launch([work / "f/basic.md"], {"MDV_DIAG_FILE": str(diag), "MDV_SELFTEST": "close,wait:500"})
         wait_reports(diag, 1)

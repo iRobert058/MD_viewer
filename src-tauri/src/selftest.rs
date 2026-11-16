@@ -5,6 +5,7 @@
 //! Actions are comma-separated:
 //!   <menu id>          run that menu item (e.g. `theme-dark`, `zoom-in`, `find`)
 //!   find-query:<text>  type <text> into the focused window's find field
+//!   click:<selector>   click the first element matching a CSS selector
 //!   close              close the focused window
 //!   report             ask every window to write its diagnostics report
 //!   wait:<ms>          pause
@@ -49,6 +50,14 @@ fn run(app: &AppHandle, action: &str) {
     if let Some(query) = action.strip_prefix("find-query:") {
         if let Some(label) = focused
             && let Err(e) = app.emit_to(&label, "selftest-find", query)
+        {
+            eprintln!("selftest: {e}");
+        }
+        return;
+    }
+    if let Some(selector) = action.strip_prefix("click:") {
+        if let Some(label) = focused
+            && let Err(e) = app.emit_to(&label, "selftest-click", selector)
         {
             eprintln!("selftest: {e}");
         }

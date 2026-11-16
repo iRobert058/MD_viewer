@@ -253,6 +253,9 @@ async function start(): Promise<void> {
     await win.listen("selftest-report", () => {
       reportDiagnostics(article, scroller, loads, timings).catch(reportError);
     });
+    await win.listen<string>("selftest-click", (e) => {
+      document.querySelector<HTMLElement>(e.payload)?.click();
+    });
     await win.listen<string>("selftest-find", (e) => {
       const input = byId<HTMLInputElement>("find-input");
       input.value = e.payload;
