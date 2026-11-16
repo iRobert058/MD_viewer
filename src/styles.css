@@ -119,10 +119,10 @@ body {
   height: 100%;
 }
 .sidebar-hidden .layout {
-  grid-template-columns: 0 1fr;
+  grid-template-columns: 1fr;
 }
 .sidebar-hidden .sidebar {
-  visibility: hidden;
+  display: none;
 }
 
 .sidebar {
