@@ -49,11 +49,12 @@ impl MenuHandles {
         for item in self.recent.items()? {
             self.recent.remove(&item)?;
         }
-        for (i, path) in paths.iter().enumerate() {
+        let labels = recent_labels(paths);
+        for (i, label) in labels.iter().enumerate() {
             let item = MenuItem::with_id(
                 app,
                 format!("{RECENT_PREFIX}{i}"),
-                recent_label(path),
+                label,
                 true,
                 None::<&str>,
             )?;
@@ -73,10 +74,26 @@ impl MenuHandles {
     }
 }
 
-fn recent_label(path: &Path) -> String {
+fn file_name(path: &Path) -> String {
     path.file_name()
         .map(|n| n.to_string_lossy().into_owned())
         .unwrap_or_else(|| path.display().to_string())
+}
+
+/// Menu labels: the file name, plus its folder when two entries share a name
+/// (as Finder does for "README.md — project-a" / "README.md — project-b").
+pub fn recent_labels(paths: &[std::path::PathBuf]) -> Vec<String> {
+    paths
+        .iter()
+        .map(|p| {
+            let name = file_name(p);
+            let shared = paths.iter().filter(|q| file_name(q) == name).count() > 1;
+            match p.parent().and_then(|d| d.file_name()) {
+                Some(dir) if shared => format!("{name} — {}", dir.to_string_lossy()),
+                _ => name,
+            }
+        })
+        .collect()
 }
 
 pub fn build(app: &AppHandle, settings: &Settings) -> tauri::Result<(Menu<Wry>, MenuHandles)> {
@@ -214,4 +231,23 @@ pub fn build(app: &AppHandle, settings: &Settings) -> tauri::Result<(Menu<Wry>, 
     };
     handles.set_recent(app, &settings.recent_files)?;
     Ok((menu, handles))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::PathBuf;
+
+    #[test]
+    fn recent_labels_add_folder_only_for_duplicate_names() {
+        let paths = [
+            PathBuf::from("/a/project-a/README.md"),
+            PathBuf::from("/b/project-b/README.md"),
+            PathBuf::from("/c/notes.md"),
+        ];
+        assert_eq!(
+            recent_labels(&paths),
+            vec!["README.md — project-a", "README.md — project-b", "notes.md"]
+        );
+    }
 }

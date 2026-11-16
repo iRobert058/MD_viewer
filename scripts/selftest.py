@@ -168,6 +168,10 @@ def main() -> int:
         check("reopening shows an empty window",
               len(r) >= 2 and r[1]["report"]["hidden"]["empty"] is False, [x["report"]["title"] for x in r])
         quit_app()
+        # 6. File > Quit (our own menu item, Cmd+Q) exits the app.
+        launch([work / "f/basic.md"], {"MDV_SELFTEST": "quit"})
+        time.sleep(4)
+        check("Quit menu item exits the app", not running())
     finally:
         if running():
             quit_app()
