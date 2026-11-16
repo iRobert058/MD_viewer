@@ -102,7 +102,19 @@ npm run build         type-check and build the frontend
 npm run tauri build   produce the installable app
 npm test              unit tests (Vitest)
 npm run lint          ESLint + Prettier check
+cd src-tauri && cargo test && cargo clippy --all-targets    Rust tests and lints
+
+scripts/install-app.sh               copy the built app to /Applications + lsregister
+scripts/check-fixtures.sh [files]    open fixtures in the installed app, print render reports
+scripts/selftest.py                  end-to-end checks via scripted menu actions
+scripts/measure-launch.sh [file] [n] cold-launch time (open -> window shown)
+node scripts/make-large-fixture.mjs  generate tests/fixtures/large.md (~1 MB, gitignored)
 ```
+
+The scripts use env-gated hooks in the app (`MDV_TIMING_FILE`, `MDV_DIAG_FILE`,
+`MDV_DIAG_SCROLL`, `MDV_SELFTEST`); they need no screen-recording or
+accessibility permission. Fixtures are copied to a temp folder first, because
+reading from `~/Documents` triggers a macOS privacy prompt.
 
 Keep this section accurate. If you add or rename a script, update it here in the same change.
 
