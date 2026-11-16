@@ -33,6 +33,18 @@
       </dict>
     </dict>
   </array>
+  <!-- Shown by macOS when the app first reads files in a protected folder
+       (for example images next to a note in Documents). -->
+  <key>NSDocumentsFolderUsageDescription</key>
+  <string>Markdown Viewer reads the images and linked notes that sit next to the Markdown files you open.</string>
+  <key>NSDesktopFolderUsageDescription</key>
+  <string>Markdown Viewer reads the images and linked notes that sit next to the Markdown files you open.</string>
+  <key>NSDownloadsFolderUsageDescription</key>
+  <string>Markdown Viewer reads the images and linked notes that sit next to the Markdown files you open.</string>
+  <key>NSRemovableVolumesUsageDescription</key>
+  <string>Markdown Viewer reads the images and linked notes that sit next to the Markdown files you open.</string>
+  <key>NSNetworkVolumesUsageDescription</key>
+  <string>Markdown Viewer reads the images and linked notes that sit next to the Markdown files you open.</string>
   <key>NSHumanReadableCopyright</key>
   <string>Copyright © 2026 Robert Karzijn</string>
 </dict>

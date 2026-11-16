@@ -18,8 +18,13 @@ pub fn run() {
 
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .register_uri_scheme_protocol("mdimg", |_ctx, request| {
-            protocol::handle(request.uri().path())
+        // Asynchronous, so file reads never run on the main thread: a slow disk
+        // or a pending macOS privacy prompt must not freeze the app.
+        .register_asynchronous_uri_scheme_protocol("mdimg", |_ctx, request, responder| {
+            let path = request.uri().path().to_string();
+            tauri::async_runtime::spawn_blocking(move || {
+                responder.respond(protocol::handle(&path));
+            });
         })
         .invoke_handler(tauri::generate_handler![
             app::load_document,
@@ -28,15 +33,18 @@ pub fn run() {
             app::frontend_ready,
             app::open_local_link,
             app::open_external,
+            app::diagnostics_enabled,
+            app::report_diagnostics,
         ])
+        .manage(AppState::default())
         .setup(|app| {
             let config_dir = app.path().app_config_dir()?;
-            let state = AppState::new(config_dir.join("settings.json"));
+            let state = app.state::<AppState>();
+            state.init_settings(config_dir.join("settings.json"));
             let settings = lock(&state.settings).clone();
-            app.manage(state);
             let (menu, handles) = menu::build(app.handle(), &settings)?;
             app.set_menu(menu)?;
-            *lock(&app.state::<AppState>().menu) = Some(handles);
+            *lock(&state.menu) = Some(handles);
             Ok(())
         })
         .on_menu_event(|app, event| handle_menu(app, event.id().as_ref()))

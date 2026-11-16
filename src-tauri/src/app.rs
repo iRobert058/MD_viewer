@@ -22,11 +22,15 @@ pub const EVENT_MENU: &str = "menu";
 /// Set at process start, used for the launch-time measurement.
 pub static PROCESS_START: OnceLock<Instant> = OnceLock::new();
 
+/// Managed on the builder, before `setup` runs: on a cold launch macOS can
+/// deliver the open-document event before setup, and it needs this state.
+#[derive(Default)]
 pub struct AppState {
     pub docs: Mutex<Docs>,
     pub watchers: Mutex<HashMap<String, FileWatcher>>,
     pub settings: Mutex<Settings>,
-    pub settings_path: PathBuf,
+    /// Set in `setup` once the config folder is known.
+    pub settings_path: OnceLock<PathBuf>,
     pub menu: Mutex<Option<MenuHandles>>,
 }
 
@@ -37,24 +41,22 @@ pub fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
 }
 
 impl AppState {
-    pub fn new(settings_path: PathBuf) -> Self {
-        let settings = settings::load(&settings_path);
-        Self {
-            docs: Mutex::new(Docs::default()),
-            watchers: Mutex::new(HashMap::new()),
-            settings: Mutex::new(settings),
-            settings_path,
-            menu: Mutex::new(None),
+    /// Load settings from disk. Called once from `setup`.
+    pub fn init_settings(&self, path: PathBuf) {
+        *lock(&self.settings) = settings::load(&path);
+        if self.settings_path.set(path).is_err() {
+            eprintln!("settings: init_settings called twice; keeping the first path");
         }
     }
 
     pub fn save_settings(&self) {
+        let Some(path) = self.settings_path.get() else {
+            eprintln!("settings: not saved, settings were never loaded");
+            return;
+        };
         let s = lock(&self.settings).clone();
-        if let Err(e) = settings::save(&self.settings_path, &s) {
-            eprintln!(
-                "settings: could not save {}: {e}",
-                self.settings_path.display()
-            );
+        if let Err(e) = settings::save(path, &s) {
+            eprintln!("settings: could not save {}: {e}", path.display());
         }
     }
 }
@@ -548,12 +550,11 @@ pub async fn open_external(app: AppHandle, url: String) -> Result<(), String> {
 }
 
 // ---------------------------------------------------------------------------
-// Launch timing (only when MDV_TIMING_FILE is set; used by scripts/measure-launch.sh)
+// Test instrumentation. Both are off unless an environment variable names an
+// output file, which only the scripts in `scripts/` set. Nothing leaves the Mac.
 
+/// Launch timing, for scripts/measure-launch.sh (MDV_TIMING_FILE).
 fn record_timing(label: &str, render_ms: Option<f64>) {
-    let Ok(file) = std::env::var("MDV_TIMING_FILE") else {
-        return;
-    };
     let since_start = PROCESS_START
         .get()
         .map(|t| t.elapsed().as_secs_f64() * 1000.0)
@@ -562,23 +563,39 @@ fn record_timing(label: &str, render_ms: Option<f64>) {
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_millis())
         .unwrap_or(0);
-    let line = format!(
-        "{{\"label\":\"{label}\",\"epochMs\":{epoch_ms},\"sinceProcessStartMs\":{since_start:.1},\"renderMs\":{}}}\n",
-        render_ms
-            .map(|r| format!("{r:.1}"))
-            .unwrap_or_else(|| "null".into())
-    );
+    let line = serde_json::json!({
+        "label": label,
+        "epochMs": epoch_ms,
+        "sinceProcessStartMs": since_start,
+        "renderMs": render_ms,
+    });
+    append_line("MDV_TIMING_FILE", &line.to_string());
+}
+
+/// Whether the frontend should send a rendering report (MDV_DIAG_FILE).
+#[tauri::command]
+pub fn diagnostics_enabled() -> bool {
+    std::env::var_os("MDV_DIAG_FILE").is_some()
+}
+
+/// A summary of what a window rendered, for scripts/check-fixtures.sh.
+#[tauri::command]
+pub fn report_diagnostics(window: WebviewWindow, report: serde_json::Value) {
+    let line = serde_json::json!({ "label": window.label(), "report": report });
+    append_line("MDV_DIAG_FILE", &line.to_string());
+}
+
+fn append_line(env_var: &str, line: &str) {
+    let Ok(file) = std::env::var(env_var) else {
+        return;
+    };
     use std::io::Write;
-    match std::fs::OpenOptions::new()
+    let result = std::fs::OpenOptions::new()
         .create(true)
         .append(true)
         .open(&file)
-    {
-        Ok(mut f) => {
-            if let Err(e) = f.write_all(line.as_bytes()) {
-                eprintln!("timing: {e}");
-            }
-        }
-        Err(e) => eprintln!("timing: cannot open {file}: {e}"),
+        .and_then(|mut f| writeln!(f, "{line}"));
+    if let Err(e) = result {
+        eprintln!("{env_var}: cannot write {file}: {e}");
     }
 }
