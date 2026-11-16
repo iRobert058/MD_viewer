@@ -24,6 +24,9 @@ export function createSanitizer(win: Window & typeof globalThis): Purifier {
 
 const PURIFY_CONFIG: Config & { RETURN_DOM_FRAGMENT: true } = {
   RETURN_DOM_FRAGMENT: true,
+  // Prefix every id/name with "user-content-" (as GitHub does) so a heading
+  // like "# Images" cannot shadow document.images or the app's own elements.
+  SANITIZE_NAMED_PROPS: true,
   FORBID_TAGS: [
     "style",
     "form",

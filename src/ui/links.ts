@@ -7,7 +7,13 @@ function prefersReducedMotion(): boolean {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
-export function scrollToId(id: string): boolean {
+/** Prefix DOMPurify adds to ids in the document (SANITIZE_NAMED_PROPS). */
+export const ID_PREFIX = "user-content-";
+
+/** Scroll to an element of the document. Only ids from the rendered document
+ * (prefixed) are reachable, never the app's own UI elements. */
+export function scrollToId(rawId: string): boolean {
+  const id = rawId.startsWith(ID_PREFIX) ? rawId : ID_PREFIX + rawId;
   const target = document.getElementById(id);
   if (!target) return false;
   target.scrollIntoView({

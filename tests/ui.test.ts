@@ -92,9 +92,26 @@ describe("collectHeadings", () => {
       ),
     );
     expect(collectHeadings(root)).toEqual([
-      { id: "one", text: "One", level: 1 },
-      { id: "two", text: "Two", level: 2 },
-      { id: "three", text: "Three", level: 3 },
+      { id: "user-content-one", text: "One", level: 1 },
+      { id: "user-content-two", text: "Two", level: 2 },
+      { id: "user-content-three", text: "Three", level: 3 },
     ]);
+  });
+});
+
+describe("scrollToId", () => {
+  it("only reaches document ids, not the app's own elements", async () => {
+    const { scrollToId } = await import("../src/ui/links");
+    // jsdom has neither scrollIntoView nor matchMedia.
+    Element.prototype.scrollIntoView = function () {};
+    window.matchMedia = (() => ({
+      matches: false,
+    })) as unknown as typeof window.matchMedia;
+    document.body.innerHTML =
+      '<input id="find-input"><h2 id="user-content-second">x</h2>';
+    expect(scrollToId("second")).toBe(true);
+    expect(document.activeElement?.id).toBe("user-content-second");
+    expect(scrollToId("user-content-second")).toBe(true);
+    expect(scrollToId("find-input")).toBe(false);
   });
 });

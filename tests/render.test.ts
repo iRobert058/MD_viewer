@@ -23,9 +23,11 @@ function dom(markdown: string, baseDir = BASE): HTMLDivElement {
 
 describe("GitHub Flavored Markdown", () => {
   it("renders headings with GitHub-style ids", () => {
-    expect(html("# Hello World")).toBe('<h1 id="hello-world">Hello World</h1>');
+    expect(html("# Hello World")).toBe(
+      '<h1 id="user-content-hello-world">Hello World</h1>',
+    );
     expect(html("## What's `new`?")).toBe(
-      '<h2 id="whats-new">What\'s <code>new</code>?</h2>',
+      '<h2 id="user-content-whats-new">What\'s <code>new</code>?</h2>',
     );
   });
 
@@ -33,7 +35,11 @@ describe("GitHub Flavored Markdown", () => {
     const ids = Array.from(dom("# A\n\n# A\n\n# A").querySelectorAll("h1")).map(
       (h) => h.id,
     );
-    expect(ids).toEqual(["a", "a-1", "a-2"]);
+    expect(ids).toEqual([
+      "user-content-a",
+      "user-content-a-1",
+      "user-content-a-2",
+    ]);
   });
 
   it("renders tables with alignment as classes, not inline styles", () => {
@@ -75,9 +81,9 @@ describe("GitHub Flavored Markdown", () => {
     expect(d.querySelector("sup.footnote-ref a")?.getAttribute("href")).toBe(
       "#fn1",
     );
-    expect(d.querySelector("section.footnotes li#fn1")?.textContent).toContain(
-      "Source.",
-    );
+    expect(
+      d.querySelector("section.footnotes li#user-content-fn1")?.textContent,
+    ).toContain("Source.");
   });
 
   it("renders fenced code with a language class for the highlighter", () => {
@@ -91,6 +97,25 @@ describe("GitHub Flavored Markdown", () => {
     const d = dom(src);
     expect(d.querySelectorAll("table")).toHaveLength(1);
     expect(d.querySelectorAll("pre > code")).toHaveLength(5);
+  });
+});
+
+describe("ids that would clash with DOM properties", () => {
+  it("keeps heading ids such as 'images' and 'links' (prefixed)", () => {
+    const ids = Array.from(
+      dom("# Images\n\n# Links\n\n# Error").querySelectorAll("h1"),
+    ).map((h) => h.id);
+    expect(ids).toEqual([
+      "user-content-images",
+      "user-content-links",
+      "user-content-error",
+    ]);
+  });
+
+  it("prefixes ids written in raw HTML too", () => {
+    expect(dom('<div id="find-input">x</div>').querySelector("div")?.id).toBe(
+      "user-content-find-input",
+    );
   });
 });
 
