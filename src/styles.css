@@ -1,16 +1,16 @@
 /* Markdown Viewer — a quiet reading surface.
    Light tokens by default; dark when the system is dark (theme "system") or when
-   forced with data-theme="dark". All text pairs meet WCAG AA (4.5:1). */
+   forced with data-theme="dark". All text pairs meet WCAG AA (4.5:1); tests/contrast.test.ts checks this. */
 
 :root {
   color-scheme: light;
   --bg: #ffffff;
   --text: #1f2328; /* 15.8:1 on --bg */
-  --muted: #57606a; /* 6.2:1 */
+  --muted: #57606a; /* 6.4:1 */
   --border: #d8dee4;
   --subtle-bg: #f6f8fa;
   --sidebar-bg: #f6f7f9;
-  --link: #0a59a8; /* 6.9:1 */
+  --link: #0a59a8; /* 7.0:1 */
   --accent: #0a59a8;
   --focus: #0a59a8;
   --code-bg: #f3f4f6;
@@ -28,12 +28,12 @@
   :root:not([data-theme="light"]) {
     color-scheme: dark;
     --bg: #1c1d20;
-    --text: #e4e6e9; /* 13.9:1 */
-    --muted: #a3aab3; /* 7.5:1 */
+    --text: #e4e6e9; /* 13.5:1 */
+    --muted: #a3aab3; /* 7.2:1 */
     --border: #3a3d43;
     --subtle-bg: #25272b;
     --sidebar-bg: #212226;
-    --link: #78b6ff; /* 7.9:1 */
+    --link: #78b6ff; /* 8.0:1 */
     --accent: #78b6ff;
     --focus: #78b6ff;
     --code-bg: #26282c;

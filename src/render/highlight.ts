@@ -9,6 +9,11 @@
 import type { HighlighterCore, ThemedToken } from "shiki/core";
 import { rememberOriginal } from "./reconcile";
 
+// Chosen so every token colour meets WCAG AA (4.5:1) on the code background in
+// styles.css; tests/contrast.test.ts guards this.
+export const LIGHT_THEME = "github-light-high-contrast";
+export const DARK_THEME = "github-dark-default";
+
 let highlighter: Promise<HighlighterCore> | null = null;
 let languages: Promise<typeof import("shiki/langs")> | null = null;
 
@@ -24,7 +29,7 @@ function getHighlighter(): Promise<HighlighterCore> {
       import("shiki/themes"),
     ]);
     return createHighlighterCore({
-      themes: [bundledThemes["github-light"](), bundledThemes["github-dark"]()],
+      themes: [bundledThemes[LIGHT_THEME](), bundledThemes[DARK_THEME]()],
       langs: [],
       engine: createJavaScriptRegexEngine(),
     });
@@ -103,7 +108,7 @@ export async function highlightAll(root: Element): Promise<void> {
     const text = code.textContent ?? "";
     const tokens = hl.codeToTokens(text.replace(/\n$/, ""), {
       lang,
-      themes: { light: "github-light", dark: "github-dark" },
+      themes: { light: LIGHT_THEME, dark: DARK_THEME },
       defaultColor: false,
     });
     rememberOriginal(code, root);
