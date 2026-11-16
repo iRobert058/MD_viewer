@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3d5a80"/>
+      <stop offset="1" stop-color="#26394f"/>
+    </linearGradient>
+    <linearGradient id="page" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#eef1f5"/>
+    </linearGradient>
+  </defs>
+  <!-- macOS icon grid: 824x824 body, 100px margin -->
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#bg)"/>
+  <!-- page with folded corner -->
+  <path d="M300 218 H620 L724 322 V806 H300 Z" fill="url(#page)"/>
+  <path d="M620 218 V322 H724 Z" fill="#c9d3df"/>
+  <!-- text lines -->
+  <rect x="356" y="300" width="200" height="22" rx="11" fill="#9fb0c3"/>
+  <rect x="356" y="350" width="300" height="22" rx="11" fill="#c9d3df"/>
+  <!-- M and down arrow -->
+  <path d="M356 700 V470 H398 L452 548 L506 470 H548 V700 H506 V545 L452 622 L398 545 V700 Z" fill="#26394f"/>
+  <path d="M598 470 H646 V610 H690 L622 700 L554 610 H598 Z" fill="#26394f"/>
+</svg>
