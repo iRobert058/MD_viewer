@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createRenderer } from "../src/render";
-import { reconcile } from "../src/render/reconcile";
+import { reconcile, rememberOriginal } from "../src/render/reconcile";
 import { findMatches } from "../src/ui/find";
 import { collectHeadings } from "../src/ui/outline";
 
@@ -47,7 +47,9 @@ describe("reconcile (live reload)", () => {
     reconcile(article, renderer.render("```js\nx\n```\n\npara", "/d"));
     const code = article.querySelector("code");
     if (!code) throw new Error("no code");
+    rememberOriginal(code, article);
     code.dataset["highlighted"] = "javascript";
+    code.innerHTML = '<span style="color: red">x</span>';
     reconcile(article, renderer.render("```js\nx\n```\n\npara edited", "/d"));
     expect(article.querySelector("code")).toBe(code);
     expect(article.querySelector("code")?.dataset["highlighted"]).toBe(

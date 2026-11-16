@@ -7,6 +7,7 @@
 // the page's Content-Security-Policy allows.
 
 import type { HighlighterCore, ThemedToken } from "shiki/core";
+import { rememberOriginal } from "./reconcile";
 
 let highlighter: Promise<HighlighterCore> | null = null;
 let languages: Promise<typeof import("shiki/langs")> | null = null;
@@ -69,7 +70,7 @@ const yieldToBrowser = (): Promise<void> =>
   new Promise((r) => setTimeout(r, 0));
 
 /** Highlight every not-yet-highlighted fenced code block under `root`. */
-export async function highlightAll(root: ParentNode): Promise<void> {
+export async function highlightAll(root: Element): Promise<void> {
   const blocks = Array.from(
     root.querySelectorAll<HTMLElement>(
       'pre > code[class*="language-"]:not([data-highlighted])',
@@ -79,12 +80,19 @@ export async function highlightAll(root: ParentNode): Promise<void> {
   const hl = await getHighlighter();
   const { bundledLanguages } = await getLanguages();
 
+  // Work in slices of about one frame so scrolling stays smooth on long files.
+  let sliceStart = performance.now();
   for (const code of blocks) {
+    if (performance.now() - sliceStart > 12) {
+      await yieldToBrowser();
+      sliceStart = performance.now();
+    }
     // The element may have been replaced by a live reload in the meantime.
     if (!code.isConnected) continue;
     const name = languageOf(code);
     const lang = name === null ? null : await resolveLanguage(name);
     if (lang === null) {
+      rememberOriginal(code, root);
       code.dataset["highlighted"] = "none";
       continue;
     }
@@ -98,9 +106,9 @@ export async function highlightAll(root: ParentNode): Promise<void> {
       themes: { light: "github-light", dark: "github-dark" },
       defaultColor: false,
     });
+    rememberOriginal(code, root);
     code.replaceChildren(tokensToDom(code.ownerDocument, tokens.tokens));
     code.dataset["highlighted"] = lang;
     code.classList.add("shiki");
-    await yieldToBrowser();
   }
 }
