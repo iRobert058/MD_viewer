@@ -2,6 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { createRenderer } from "./render";
 import { reconcile } from "./render/reconcile";
+import { reportDiagnostics } from "./ui/diagnostics";
 import { FindBar } from "./ui/find";
 import { installLinkHandler } from "./ui/links";
 import { Outline } from "./ui/outline";
@@ -54,6 +55,9 @@ const find = new FindBar(
 );
 
 let current: DocumentPayload | null = null;
+let pendingHighlight: Promise<void> = Promise.resolve();
+let diagnostics = false;
+let loads = 0;
 let settings: Settings | null = null;
 
 function show(which: "doc" | "empty" | "error"): void {
@@ -71,6 +75,15 @@ async function highlight(): Promise<void> {
   if (!article.querySelector('pre > code[class*="language-"]')) return;
   const { highlightAll } = await import("./render/highlight");
   await highlightAll(article);
+}
+
+/** Load, then (only under the test scripts) report what was rendered. */
+async function loadAndReport(): Promise<void> {
+  await load();
+  loads++;
+  if (!diagnostics) return;
+  await pendingHighlight;
+  await reportDiagnostics(article, scroller, loads);
 }
 
 /** Load (or reload) this window's document and render it. */
@@ -103,7 +116,9 @@ async function load(): Promise<void> {
 
   outline.rebuild();
   find.refresh();
-  highlight().catch((e: unknown) => console.error("highlighting failed", e));
+  pendingHighlight = highlight().catch((e: unknown) =>
+    console.error("highlighting failed", e),
+  );
 }
 
 function toggleSidebar(): void {
@@ -174,7 +189,7 @@ async function start(): Promise<void> {
     applySettings(e.payload);
   });
   await win.listen("document-changed", () => {
-    load().catch(reportError);
+    loadAndReport().catch(reportError);
   });
   await win.listen<string>("menu", (e) => onMenu(e.payload));
   await win.onDragDropEvent((e) => {
@@ -189,13 +204,16 @@ async function start(): Promise<void> {
     (msg) => console.error(msg),
   );
 
+  diagnostics = await invoke<boolean>("diagnostics_enabled");
   await load();
-  // Wait for the first frame with content before showing the window.
-  requestAnimationFrame(() => {
-    invoke("frontend_ready", { renderMs: performance.now() - started }).catch(
-      reportError,
-    );
-  });
+  loads++;
+  // The DOM now holds the content, so the window can be shown. Do not wait
+  // for requestAnimationFrame: WebKit does not run frames for a hidden window.
+  await invoke("frontend_ready", { renderMs: performance.now() - started });
+  if (diagnostics) {
+    await pendingHighlight;
+    await reportDiagnostics(article, scroller, loads);
+  }
 }
 
 start().catch((e: unknown) => {
