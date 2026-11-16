@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en" data-theme="system">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Markdown Viewer</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+    <script type="module" src="/src/main.ts"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#doc">Skip to document</a>
+    <div class="layout">
+      <nav id="outline" class="sidebar" aria-label="Outline">
+        <ol id="outline-list" class="outline-list"></ol>
+      </nav>
+      <main id="scroller" class="scroller">
+        <div id="findbar" class="findbar" role="search" hidden>
+          <label class="visually-hidden" for="find-input"
+            >Find in document</label
+          >
+          <input
+            id="find-input"
+            type="search"
+            placeholder="Find"
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <span
+            id="find-status"
+            class="find-status"
+            role="status"
+            aria-live="polite"
+          ></span>
+          <button
+            id="find-prev"
+            type="button"
+            aria-label="Previous match"
+            title="Previous match (⇧⌘G)"
+          >
+            ‹
+          </button>
+          <button
+            id="find-next"
+            type="button"
+            aria-label="Next match"
+            title="Next match (⌘G)"
+          >
+            ›
+          </button>
+          <button
+            id="find-close"
+            type="button"
+            aria-label="Close find bar"
+            title="Close (Esc)"
+          >
+            ×
+          </button>
+        </div>
+        <article id="doc" class="markdown-body" tabindex="-1" hidden></article>
+        <div id="empty" class="empty-state" hidden>
+          <p>Drop a Markdown file here, or press <kbd>⌘O</kbd> to open one.</p>
+        </div>
+        <div id="error" class="error-state" role="alert" hidden></div>
+      </main>
+    </div>
+
+    <dialog id="settings-dialog" aria-labelledby="settings-title">
+      <form method="dialog">
+        <h2 id="settings-title">Settings</h2>
+        <fieldset>
+          <legend>Appearance</legend>
+          <label
+            ><input type="radio" name="theme" value="system" /> Match
+            system</label
+          >
+          <label><input type="radio" name="theme" value="light" /> Light</label>
+          <label><input type="radio" name="theme" value="dark" /> Dark</label>
+        </fieldset>
+        <label class="checkbox"
+          ><input type="checkbox" name="sidebar" /> Show outline sidebar</label
+        >
+        <div class="dialog-actions"><button value="close">Done</button></div>
+      </form>
+    </dialog>
+
+    <dialog id="help-dialog" aria-labelledby="help-title">
+      <form method="dialog">
+        <h2 id="help-title">Using Markdown Viewer as the default app</h2>
+        <p>
+          Choose
+          <strong>Markdown Viewer &gt; Make Default Markdown Viewer…</strong>.
+          macOS asks you to confirm the change.
+        </p>
+        <p>Or do it in Finder:</p>
+        <ol>
+          <li>
+            Select any <code>.md</code> file and choose
+            <strong>File &gt; Get Info</strong>.
+          </li>
+          <li>Under <strong>Open with</strong>, pick Markdown Viewer.</li>
+          <li>Click <strong>Change All…</strong> and confirm.</li>
+        </ol>
+        <div class="dialog-actions"><button value="close">Done</button></div>
+      </form>
+    </dialog>
+  </body>
+</html>
