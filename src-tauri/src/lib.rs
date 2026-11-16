@@ -17,6 +17,16 @@ pub fn run() {
     let _ = app::PROCESS_START.set(Instant::now());
 
     let app = tauri::Builder::default()
+        // Must be the first plugin: a second copy (`open -n`, or running the
+        // binary directly) hands its arguments to this one and exits.
+        .plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
+            let paths = paths_from_args(argv.iter().skip(1).map(PathBuf::from), &cwd);
+            if paths.is_empty() {
+                app::bring_to_front(app);
+            } else {
+                app::open_paths(app, paths);
+            }
+        }))
         .plugin(tauri_plugin_dialog::init())
         // Asynchronous, so file reads never run on the main thread: a slow disk
         // or a pending macOS privacy prompt must not freeze the app.
@@ -162,9 +172,22 @@ fn handle_menu(app: &tauri::AppHandle, id: &str) {
 /// Files passed on the command line (handy with `tauri dev`; Finder and
 /// `open -a` use open-document events instead).
 fn cli_paths() -> Vec<PathBuf> {
-    std::env::args_os()
-        .skip(1)
-        .map(PathBuf::from)
-        .filter(|p| p.is_file() && documents::is_markdown(p))
-        .collect()
+    let cwd = std::env::current_dir().unwrap_or_default();
+    paths_from_args(
+        std::env::args_os().skip(1).map(PathBuf::from),
+        &cwd.to_string_lossy(),
+    )
+}
+
+/// Markdown files among command-line arguments, made absolute against `cwd`.
+fn paths_from_args(args: impl Iterator<Item = PathBuf>, cwd: &str) -> Vec<PathBuf> {
+    args.map(|p| {
+        if p.is_absolute() {
+            p
+        } else {
+            std::path::Path::new(cwd).join(p)
+        }
+    })
+    .filter(|p| p.is_file() && documents::is_markdown(p))
+    .collect()
 }

@@ -127,6 +127,16 @@ pub fn open_path(app: &AppHandle, path: &Path) {
     remember_recent(app, &path);
 }
 
+/// Focus the most recently focused window, or open an empty one if none exist.
+pub fn bring_to_front(app: &AppHandle) {
+    let label = lock(&app.state::<AppState>().docs).focused.clone();
+    let label = label.or_else(|| app.webview_windows().keys().next().cloned());
+    match label {
+        Some(l) => focus_window(app, &l),
+        None => open_empty_window(app),
+    }
+}
+
 pub fn open_empty_window(app: &AppHandle) {
     let state = app.state::<AppState>();
     let label = lock(&state.docs).new_empty();
