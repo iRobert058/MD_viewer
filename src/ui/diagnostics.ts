@@ -67,6 +67,29 @@ export async function reportDiagnostics(
       error: document.getElementById("error")?.hidden,
     },
     errorText: document.getElementById("error")?.textContent ?? "",
+    ui: {
+      findOpen: !(document.getElementById("findbar")?.hidden ?? true),
+      findStatus: document.getElementById("find-status")?.textContent ?? "",
+      findHighlights:
+        typeof CSS !== "undefined" && "highlights" in CSS
+          ? (CSS.highlights.get("find")?.size ?? 0)
+          : null,
+      sidebarHidden:
+        document.documentElement.classList.contains("sidebar-hidden"),
+      sidebarWidth: Math.round(
+        document.getElementById("outline")?.getBoundingClientRect().width ?? 0,
+      ),
+      zoom: document.documentElement.style.getPropertyValue("--zoom"),
+      settingsOpen: (
+        document.getElementById("settings-dialog") as HTMLDialogElement | null
+      )?.open,
+      helpOpen: (
+        document.getElementById("help-dialog") as HTMLDialogElement | null
+      )?.open,
+      currentOutline:
+        document.querySelector('#outline-list a[aria-current="location"]')
+          ?.textContent ?? null,
+    },
   };
   await invoke("report_diagnostics", { report });
 }

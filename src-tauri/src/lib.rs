@@ -3,6 +3,7 @@ mod documents;
 mod menu;
 mod platform;
 mod protocol;
+mod selftest;
 mod settings;
 mod watcher;
 
@@ -76,6 +77,7 @@ pub fn run() {
             } else {
                 app::open_paths(app, paths);
             }
+            selftest::start(app);
         }
         #[cfg(any(target_os = "macos", target_os = "ios"))]
         RunEvent::Opened { urls } => {
@@ -125,7 +127,7 @@ pub fn run() {
     });
 }
 
-fn handle_menu(app: &tauri::AppHandle, id: &str) {
+pub(crate) fn handle_menu(app: &tauri::AppHandle, id: &str) {
     use menu::*;
     match id {
         OPEN => app::show_open_dialog(app),

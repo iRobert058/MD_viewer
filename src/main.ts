@@ -232,6 +232,10 @@ function onMenu(action: string): void {
 async function start(): Promise<void> {
   const started = performance.now();
   const win = getCurrentWebviewWindow();
+  const diag = await invoke<{ enabled: boolean; scrollTo: number | null }>(
+    "diagnostics_config",
+  );
+  diagnostics = diag.enabled;
 
   settings = await getSettings();
   applySettings(settings);
@@ -244,6 +248,17 @@ async function start(): Promise<void> {
     loadAndReport().catch(reportError);
   });
   await win.listen<string>("menu", (e) => onMenu(e.payload));
+  if (diag.enabled) {
+    // Only under scripts/selftest.sh (MDV_SELFTEST): see src-tauri/src/selftest.rs.
+    await win.listen("selftest-report", () => {
+      reportDiagnostics(article, scroller, loads, timings).catch(reportError);
+    });
+    await win.listen<string>("selftest-find", (e) => {
+      const input = byId<HTMLInputElement>("find-input");
+      input.value = e.payload;
+      input.dispatchEvent(new Event("input"));
+    });
+  }
   await win.onDragDropEvent((e) => {
     document.documentElement.classList.toggle(
       "drag-over",
@@ -256,10 +271,6 @@ async function start(): Promise<void> {
     (msg) => console.error(msg),
   );
 
-  const diag = await invoke<{ enabled: boolean; scrollTo: number | null }>(
-    "diagnostics_config",
-  );
-  diagnostics = diag.enabled;
   bootMs = performance.now() - started;
   await load();
   loads++;
