@@ -270,7 +270,8 @@ kbd {
 /* ---------- Document ---------- */
 
 .markdown-body {
-  max-width: 76ch;
+  /* ~66ch of "0" glyphs is roughly 75-80 characters of ordinary prose. */
+  max-width: calc(66ch + 64px);
   margin: 0 auto;
   padding: 40px 32px 96px;
   font-size: calc(17px * var(--zoom));
