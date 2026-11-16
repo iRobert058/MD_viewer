@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Document windows: core events and window APIs only. All file access goes through app commands that are scoped to the window's own document.",
+  "windows": ["*"],
+  "permissions": ["core:default"]
+}
